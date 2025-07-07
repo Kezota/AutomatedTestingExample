@@ -40,9 +40,7 @@ describe("Register Integration Test with MSW", () => {
 
     // Wait until mutation succeeds (we check the button disabled or whatever)
     await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /registering/i })
-      ).toBeDisabled();
+      expect(screen.getByRole("button", { name: /register/i })).toBeDisabled();
     });
   });
 });
