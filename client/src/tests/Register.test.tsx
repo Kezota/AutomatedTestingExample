@@ -1,33 +1,38 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import { toast } from "react-toastify";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Register from "@/pages/Register";
 
+// Mock useRegisterMutation hook
 const mockMutate = jest.fn();
-
 jest.mock("@/hooks/useAuthMutation", () => ({
   useRegisterMutation: () => ({
     mutate: mockMutate,
-    isLoading: false,
+    status: "idle", // atau "pending" jika ingin test loading state
   }),
 }));
 
+// Mock react-toastify
+const mockToastError = jest.fn();
 jest.mock("react-toastify", () => ({
   toast: {
-    error: jest.fn(),
-    success: jest.fn(),
+    error: (...args: any[]) => mockToastError(...args),
   },
 }));
 
-describe("Register Page", () => {
-  it("renders the register form", () => {
-    render(
-      <BrowserRouter>
-        <Register />
-      </BrowserRouter>
-    );
+// Helper to wrap component with providers
+const renderWithProviders = (ui: React.ReactNode) => {
+  const queryClient = new QueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>{ui}</BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
-    // Periksa apakah elemen-elemen form register ada
+describe("Register Page", () => {
+  it("renders all form elements correctly", () => {
+    renderWithProviders(<Register />);
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
@@ -36,79 +41,56 @@ describe("Register Page", () => {
     ).toBeInTheDocument();
   });
 
-  it("allows the user to type in the email, password, and confirm password fields", () => {
-    render(
-      <BrowserRouter>
-        <Register />
-      </BrowserRouter>
-    );
+  it("allows user to type in inputs", () => {
+    renderWithProviders(<Register />);
+    const email = screen.getByLabelText("Email");
+    const password = screen.getByLabelText("Password");
+    const confirmPassword = screen.getByLabelText("Confirm Password");
 
-    const emailInput = screen.getByLabelText("Email");
-    const passwordInput = screen.getByLabelText("Password");
-    const confirmPasswordInput = screen.getByLabelText("Confirm Password");
+    fireEvent.change(email, { target: { value: "test@user.com" } });
+    fireEvent.change(password, { target: { value: "123456" } });
+    fireEvent.change(confirmPassword, { target: { value: "123456" } });
 
-    // Simulasikan mengetik di input email, password, dan confirm password
-    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-    fireEvent.change(passwordInput, { target: { value: "password123" } });
-    fireEvent.change(confirmPasswordInput, {
-      target: { value: "password123" },
-    });
-
-    expect(emailInput).toHaveValue("test@example.com");
-    expect(passwordInput).toHaveValue("password123");
-    expect(confirmPasswordInput).toHaveValue("password123");
+    expect(email).toHaveValue("test@user.com");
+    expect(password).toHaveValue("123456");
+    expect(confirmPassword).toHaveValue("123456");
   });
 
-  it("shows an error if passwords do not match", () => {
-    render(
-      <BrowserRouter>
-        <Register />
-      </BrowserRouter>
-    );
-
-    const emailInput = screen.getByLabelText("Email");
-    const passwordInput = screen.getByLabelText("Password");
-    const confirmPasswordInput = screen.getByLabelText("Confirm Password");
-    const submitButton = screen.getByRole("button", { name: /register/i });
-
-    // Simulasikan memasukkan password yang tidak cocok
-    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-    fireEvent.change(passwordInput, { target: { value: "password123" } });
-    fireEvent.change(confirmPasswordInput, {
-      target: { value: "password456" },
+  it("shows error toast when passwords do not match", () => {
+    renderWithProviders(<Register />);
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "test@user.com" },
     });
-    fireEvent.click(submitButton);
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "123456" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm Password"), {
+      target: { value: "wrongpass" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /register/i }));
 
-    // Periksa apakah toast.error dipanggil
-    expect(toast.error).toHaveBeenCalledWith("Passwords do not match!");
+    expect(mockMutate).not.toHaveBeenCalled();
+    expect(mockToastError).toHaveBeenCalledWith("Passwords do not match!");
   });
 
-  it("calls the register mutation when the form is submitted with valid data", () => {
-    render(
-      <BrowserRouter>
-        <Register />
-      </BrowserRouter>
-    );
-
-    const emailInput = screen.getByLabelText("Email");
-    const passwordInput = screen.getByLabelText("Password");
-    const confirmPasswordInput = screen.getByLabelText("Confirm Password");
-    const submitButton = screen.getByRole("button", { name: /register/i });
-
-    // Simulasikan memasukkan data yang valid
-    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-    fireEvent.change(passwordInput, { target: { value: "password123" } });
-    fireEvent.change(confirmPasswordInput, {
-      target: { value: "password123" },
+  it("submits form when all fields are valid", () => {
+    renderWithProviders(<Register />);
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "test@user.com" },
     });
-    fireEvent.click(submitButton);
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "123456" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm Password"), {
+      target: { value: "123456" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /register/i }));
 
-    // Periksa apakah fungsi mutate dipanggil dengan data yang benar
     expect(mockMutate).toHaveBeenCalledWith(
       {
-        email: "test@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+        email: "test@user.com",
+        password: "123456",
+        confirmPassword: "123456",
       },
       expect.any(Object)
     );

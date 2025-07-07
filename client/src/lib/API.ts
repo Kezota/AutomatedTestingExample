@@ -8,14 +8,10 @@ export const API = axios.create({
 API.interceptors.request.use(
   (request) => {
     const token = localStorage.getItem("token");
+
     if (token) {
-      if (request.headers) {
-        request.headers.Authorization = `Bearer ${token}`;
-      } else {
-        request.headers = {
-          Authorization: `Bearer ${token}`,
-        } as Record<string, string>;
-      }
+      // .set() hanya tersedia kalau headers-nya sudah berbentuk AxiosHeaders
+      request.headers?.set?.("Authorization", `Bearer ${token}`);
     }
 
     return request;

@@ -12,7 +12,8 @@ const Register = () => {
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const navigate = useNavigate();
-  const { mutate, isLoading } = useRegisterMutation();
+  const { mutate, status } = useRegisterMutation();
+  const isLoading = status === "pending"; // Updated to include "loading"
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();

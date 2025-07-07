@@ -1,68 +1,77 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Login from "@/pages/Login";
 
+// Mock the useLoginMutation hook
 const mockMutate = jest.fn();
-
 jest.mock("@/hooks/useAuthMutation", () => ({
   useLoginMutation: () => ({
     mutate: mockMutate,
-    isLoading: false,
+    status: "idle", // or "pending" if you want to test loading state
   }),
 }));
 
-describe("Login Page", () => {
-  it("renders the login form", () => {
-    render(
-      <BrowserRouter>
-        <Login />
-      </BrowserRouter>
-    );
+// Utility to wrap component with required providers
+const renderWithProviders = (ui: React.ReactNode) => {
+  const queryClient = new QueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>{ui}</BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
-    // Periksa apakah elemen-elemen form login ada
+describe("Login Page", () => {
+  it("renders login form with all inputs and button", () => {
+    renderWithProviders(<Login />);
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
   });
 
-  it("allows the user to type in the email and password fields", () => {
-    render(
-      <BrowserRouter>
-        <Login />
-      </BrowserRouter>
-    );
-
+  it("allows user to type into the form fields", () => {
+    renderWithProviders(<Login />);
     const emailInput = screen.getByLabelText("Email");
     const passwordInput = screen.getByLabelText("Password");
 
-    // Simulasikan mengetik di input email dan password
-    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-    fireEvent.change(passwordInput, { target: { value: "password123" } });
+    fireEvent.change(emailInput, { target: { value: "test@user.com" } });
+    fireEvent.change(passwordInput, { target: { value: "securepass" } });
 
-    expect(emailInput).toHaveValue("test@example.com");
-    expect(passwordInput).toHaveValue("password123");
+    expect(emailInput).toHaveValue("test@user.com");
+    expect(passwordInput).toHaveValue("securepass");
   });
 
-  it("calls the login mutation when the form is submitted", () => {
-    render(
-      <BrowserRouter>
-        <Login />
-      </BrowserRouter>
-    );
+  it("submits the form with valid inputs", () => {
+    renderWithProviders(<Login />);
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "test@user.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "securepass" },
+    });
 
-    const emailInput = screen.getByLabelText("Email");
-    const passwordInput = screen.getByLabelText("Password");
-    const submitButton = screen.getByRole("button", { name: /login/i });
+    fireEvent.click(screen.getByRole("button", { name: /login/i }));
 
-    // Simulasikan mengetik dan submit form
-    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-    fireEvent.change(passwordInput, { target: { value: "password123" } });
-    fireEvent.click(submitButton);
-
-    // Periksa apakah fungsi mutate dipanggil dengan data yang benar
     expect(mockMutate).toHaveBeenCalledWith(
-      { email: "test@example.com", password: "password123" },
-      expect.any(Object) // Memastikan opsi tambahan juga diteruskan
+      {
+        email: "test@user.com",
+        password: "securepass",
+      },
+      expect.any(Object)
     );
+  });
+
+  it("disables the login button when loading", () => {
+    // Override hook to simulate loading state
+    jest.mocked(require("@/hooks/useAuthMutation")).useLoginMutation = () => ({
+      mutate: mockMutate,
+      status: "pending",
+    });
+
+    renderWithProviders(<Login />);
+
+    const button = screen.getByRole("button", { name: /logging in/i });
+    expect(button).toBeDisabled();
   });
 });

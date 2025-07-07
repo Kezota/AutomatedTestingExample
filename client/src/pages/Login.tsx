@@ -10,7 +10,8 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const { mutate, isLoading } = useLoginMutation();
+  const { mutate, status } = useLoginMutation();
+  const isLoading = status === "pending";
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
