@@ -14,7 +14,11 @@ Manual testing is often time-consuming and prone to human error. By introducing 
 - Test cases serve as up-to-date documentation for the team.
 
 Read my full research findings here:  
-🔗 [Research Documentation](https://docs.google.com/document/d/1zfoa54ngLM5td8KPrYTHlT3gR3NGdM6syPDN1jYHG0g/edit?tab=t.0)
+Automated Testing for FE:
+🔗 [Research Documentation FE](https://docs.google.com/document/d/130kdOnObMWjX1OP1zC0U3_zkvlrJEvFTp_OD7_JhHjI/edit?usp=sharing)
+
+Automated Testing for BE:
+🔗 [Research Documentation BE](https://docs.google.com/document/d/1zfoa54ngLM5td8KPrYTHlT3gR3NGdM6syPDN1jYHG0g/edit?tab=t.0)
 
 ---
 
